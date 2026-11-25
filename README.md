@@ -41,3 +41,5 @@ Check career claims, dates and any new content for accuracy. Do not include priv
 
 ## Contact & social links
 Open the updated editor.html and select docs/index.html. Choose a contact type, click Add contact, and enter a button label and approved professional address or HTTPS URL. Apply & preview contacts, then export index.html. Remove a row to remove the public link. Empty rows are omitted. Reopen the exported file to edit saved links. Older portfolio HTML is upgraded automatically. Do not publish personal contact details. Removing a link from the current site does not erase old GitHub commits or copies.
+
+Email buttons now display the configured professional email address next to the button label. The address stays selectable and the link remains clickable. Existing files loaded into the new editor gain this display automatically when exported. Only use an address suitable for public sharing.
