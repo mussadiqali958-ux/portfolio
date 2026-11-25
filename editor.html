@@ -19,8 +19,8 @@ const setStatus=s=>{$('status').textContent=s};
 const mark=()=>{dirty=true;setStatus('Unsaved changes — export when ready.');};
 function output(){return '<!doctype html>\n'+doc.documentElement.outerHTML}
 function preview(){if(safe())$('preview').srcdoc=output()}
-function sections(){return [...doc.querySelectorAll('header,main section,footer')]}
-function sectionLabel(el){return el.id ? el.id.charAt(0).toUpperCase()+el.id.slice(1) : el.tagName==='HEADER'?'Navigation':el.tagName==='FOOTER'?'Footer':'Introduction'}
+function sections(){return [...doc.querySelectorAll('header,main .hero,main section,footer')]}
+function sectionLabel(el){if(el.classList.contains('hero'))return 'Introduction / hero';return el.id ? el.id.charAt(0).toUpperCase()+el.id.slice(1) : el.tagName==='HEADER'?'Navigation':el.tagName==='FOOTER'?'Footer':'Introduction'}
 function textNodes(root){const result=[];const walker=doc.createTreeWalker(root,NodeFilter.SHOW_TEXT);let node;while(node=walker.nextNode()){const p=node.parentElement;if(node.nodeValue.trim()&&!p.closest('svg,script,style,button,.filters,.topprogress,.skip,[role=status]'))result.push(node)}return result}
 function showFields(){const host=$('fields');host.replaceChildren();const root=sections()[Number($('section').value)];if(!root)return;for(const node of textNodes(root)){const parent=node.parentElement, field=document.createElement('textarea'), label=document.createElement('label');label.textContent=parent.tagName.toLowerCase()+' · '+node.nodeValue.trim().slice(0,68);field.value=node.nodeValue;field.rows=node.nodeValue.length>110?4:2;field.setAttribute('aria-label',label.textContent);field.addEventListener('input',()=>{node.nodeValue=field.value;mark()});host.append(label,field)}}
 function buildSections(selected){const s=$('section');s.replaceChildren();sections().forEach((el,i)=>s.add(new Option(sectionLabel(el),i)));if(selected!=null&&s.options[selected])s.value=String(selected);showFields()}
