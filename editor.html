@@ -9,7 +9,7 @@
 <section class="panel"><h2>2. Edit your content</h2><label for="section">Website section</label><select id="section"></select><p class="hint">Edit any displayed text below. Form fields follow the page's order; headings with colored words are split into separate fields to preserve styling.</p><div id="fields" class="fields"></div></section>
 <section class="panel"><h2>3. Manage project cards</h2><label for="project">Choose a project</label><select id="project"></select><label for="category">Project category</label><select id="category"></select><div class="row" style="margin-top:12px"><button id="duplicate">Duplicate selected</button><button id="remove" class="secondary danger">Remove selected</button></div><p class="hint">Duplicate a card to add a new project, then edit its text in the Projects section. A removed card is not saved until you export.</p></section>
 <section class="panel"><h2>4. Customize theme</h2><div id="colors"></div><label for="title">Browser title</label><input id="title"><label for="description">Search / social description</label><textarea id="description"></textarea></section>
-<section class="panel"><h2>5. Save and publish</h2><button id="save">Download updated index.html</button><p class="hint">Replace docs/index.html with the downloaded file. Open it directly to check your work, then commit and push via GitHub Desktop or upload it on GitHub. The public link updates after GitHub Pages rebuilds.</p><p class="hint">Keep private details, client records and confidential files out of the public repository.</p></section>
+<section class="panel" id="contact-settings"><h2>5. Contact &amp; social links</h2><p class="hint">Add only approved professional channels. Empty or removed rows are excluded from the exported site. Avoid publishing personal phone numbers, personal email addresses, home addresses or other private information. Old GitHub commits may retain earlier versions.</p><div id="contact-rows"></div><label for="contact-kind">Add contact type</label><div class="row"><select id="contact-kind"><option value="email">Email</option><option value="whatsapp">WhatsApp (professional account)</option><option value="linkedin">LinkedIn</option><option value="github">GitHub</option><option value="website">Website</option><option value="other">Custom link</option></select><button id="add-contact">+ Add contact</button></div><p id="contact-error" role="alert" class="hint danger"></p><button id="apply-contacts" class="secondary">Apply &amp; preview contacts</button></section><section class="panel"><h2>6. Save and publish</h2><button id="save">Download updated index.html</button><p class="hint">Replace docs/index.html with the downloaded file. Open it directly to check your work, then commit and push via GitHub Desktop or upload it on GitHub. The public link updates after GitHub Pages rebuilds.</p><p><a href="https://github.com/mussadiqali958-ux/portfolio/upload/main/docs" target="_blank" rel="noopener noreferrer">Upload updated index.html to the correct GitHub docs folder</a></p><p class="hint">Keep private details, client records and confidential files out of the public repository.</p></section>
 </div></div>
 <section class="preview"><div class="row"><h2 style="margin:0;flex:1">Live preview</h2><button id="desktop" class="secondary">Desktop</button><button id="phone" class="secondary">Mobile</button><button id="refresh" disabled>Refresh preview</button></div><iframe id="preview" title="Local portfolio preview" sandbox="allow-scripts allow-modals"></iframe><p class="hint">Preview is a sandboxed copy. The exported portfolio has no editor controls.</p></section>
 </main><script>
@@ -18,10 +18,10 @@ const $=id=>document.getElementById(id);let doc=null,dirty=false;const safe=()=>
 const setStatus=s=>{$('status').textContent=s};
 const mark=()=>{dirty=true;setStatus('Unsaved changes — export when ready.');};
 function output(){return '<!doctype html>\n'+doc.documentElement.outerHTML}
-function preview(){if(safe())$('preview').srcdoc=output()}
+function preview(){if(safe()&&syncContacts())$('preview').srcdoc=output()}
 function sections(){return [...doc.querySelectorAll('header,main .hero,main section,footer')]}
 function sectionLabel(el){if(el.classList.contains('hero'))return 'Introduction / hero';return el.id ? el.id.charAt(0).toUpperCase()+el.id.slice(1) : el.tagName==='HEADER'?'Navigation':el.tagName==='FOOTER'?'Footer':'Introduction'}
-function textNodes(root){const result=[];const walker=doc.createTreeWalker(root,NodeFilter.SHOW_TEXT);let node;while(node=walker.nextNode()){const p=node.parentElement;if(node.nodeValue.trim()&&!p.closest('svg,script,style,button,.filters,.topprogress,.skip,[role=status]'))result.push(node)}return result}
+function textNodes(root){const result=[];const walker=doc.createTreeWalker(root,NodeFilter.SHOW_TEXT);let node;while(node=walker.nextNode()){const p=node.parentElement;if(node.nodeValue.trim()&&!p.closest('svg,script,style,button,.filters,.topprogress,.skip,.portfolio-contact-links,[role=status]'))result.push(node)}return result}
 function showFields(){const host=$('fields');host.replaceChildren();const root=sections()[Number($('section').value)];if(!root)return;for(const node of textNodes(root)){const parent=node.parentElement, field=document.createElement('textarea'), label=document.createElement('label');label.textContent=parent.tagName.toLowerCase()+' · '+node.nodeValue.trim().slice(0,68);field.value=node.nodeValue;field.rows=node.nodeValue.length>110?4:2;field.setAttribute('aria-label',label.textContent);field.addEventListener('input',()=>{node.nodeValue=field.value;mark()});host.append(label,field)}}
 function buildSections(selected){const s=$('section');s.replaceChildren();sections().forEach((el,i)=>s.add(new Option(sectionLabel(el),i)));if(selected!=null&&s.options[selected])s.value=String(selected);showFields()}
 function cards(){return [...doc.querySelectorAll('.project')]}
@@ -29,7 +29,7 @@ function updateNumbers(){cards().forEach((c,i)=>{const n=c.querySelector('.meta 
 function buildProjects(index){const s=$('project');s.replaceChildren();cards().forEach((c,i)=>s.add(new Option((i+1)+'. '+(c.querySelector('h3')?.textContent||'Project'),i)));if(index!=null&&s.options[index])s.value=String(index);const available=[...doc.querySelectorAll('.filter')].map(b=>b.dataset.filter).filter(v=>v&&v!=='all');$('category').replaceChildren();available.forEach(c=>$('category').add(new Option(c,c)));projectChanged()}
 function projectChanged(){const c=cards()[Number($('project').value)];$('category').disabled=!c;$('duplicate').disabled=!c;$('remove').disabled=cards().length<=1;if(c)$('category').value=c.dataset.category}
 function buildColors(){const host=$('colors');host.replaceChildren();const style=doc.querySelector('style');for(const [key,labelText] of [['--ink','Primary text'],['--muted','Secondary text'],['--gold','Gold accent'],['--gold-dark','Accent text'],['--pale','Pale highlight'],['--paper','Page background']]){const re=new RegExp('('+key+':\\s*)(#[0-9a-fA-F]{6})(?=\\s*[;}])');const m=style?.textContent.match(re);if(!m)continue;const row=document.createElement('div'),label=document.createElement('label'),input=document.createElement('input');row.className='colorrow';label.textContent=labelText;input.type='color';input.value=m[2];input.setAttribute('aria-label',labelText);input.oninput=()=>{style.textContent=style.textContent.replace(re,(_,prefix)=>prefix+input.value);mark()};row.append(label,input);host.append(row)}}
-$('file').onchange=async e=>{const f=e.target.files[0];if(!f)return;if(dirty&&!confirm('Discard unsaved changes?')){e.target.value='';return}try{const parsed=new DOMParser().parseFromString(await f.text(),'text/html');if(!parsed.querySelector('.hero')||!parsed.querySelector('.project')||!parsed.querySelector('style'))throw Error('Choose the portfolio index.html, not the editor or another website.');doc=parsed;dirty=false;$('controls').hidden=false;$('refresh').disabled=false;buildSections();buildProjects();buildColors();$('title').value=doc.title;$('description').value=doc.querySelector('meta[name=description]')?.content||'';setStatus('Loaded '+f.name+' — ready to edit.');preview()}catch(err){setStatus(err.message)}};
+$('file').onchange=async e=>{const f=e.target.files[0];if(!f)return;if(dirty&&!confirm('Discard unsaved changes?')){e.target.value='';return}try{const parsed=new DOMParser().parseFromString(await f.text(),'text/html');if(!parsed.querySelector('.hero')||!parsed.querySelector('.project')||!parsed.querySelector('style'))throw Error('Choose the portfolio index.html, not the editor or another website.');doc=parsed;dirty=false;$('controls').hidden=false;$('refresh').disabled=false;loadContacts();buildSections();buildProjects();buildColors();$('title').value=doc.title;$('description').value=doc.querySelector('meta[name=description]')?.content||'';setStatus('Loaded '+f.name+' — ready to edit.');preview()}catch(err){setStatus(err.message)}};
 $('section').onchange=()=>{showFields();buildProjects(Number($('project').value))};
 $('project').onchange=projectChanged;
 $('category').onchange=()=>{const c=cards()[Number($('project').value)];if(c){c.dataset.category=$('category').value;const b=[...doc.querySelectorAll('.filter')].find(x=>x.dataset.filter===c.dataset.category);const label=c.querySelector('.meta span:first-child');if(b&&label)label.textContent=b.textContent.trim();mark();showFields()}};
@@ -37,6 +37,62 @@ $('duplicate').onclick=()=>{const i=Number($('project').value),c=cards()[i];if(!
 $('remove').onclick=()=>{const i=Number($('project').value),c=cards()[i];if(!c||cards().length<=1||!confirm('Remove this project from your draft?'))return;const section=c.closest('section');c.remove();updateNumbers();buildProjects(Math.max(0,i-1));buildSections(sections().indexOf(section));mark();preview()};
 $('title').oninput=()=>{doc.title=$('title').value;mark()};$('description').oninput=()=>{let m=doc.querySelector('meta[name=description]');if(!m){m=doc.createElement('meta');m.name='description';doc.head.append(m)}m.content=$('description').value;mark()};
 $('refresh').onclick=()=>{buildProjects(Number($('project').value));preview()};$('desktop').onclick=()=>document.querySelector('.preview').classList.remove('phone');$('phone').onclick=()=>document.querySelector('.preview').classList.add('phone');
-$('save').onclick=()=>{if(!safe())return;const url=URL.createObjectURL(new Blob([output()],{type:'text/html;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='index.html';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);dirty=false;setStatus('Exported index.html. Replace docs/index.html before publishing.');preview()};
+$('save').onclick=()=>{if(!safe()||!syncContacts())return;const url=URL.createObjectURL(new Blob([output()],{type:'text/html;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='index.html';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);dirty=false;setStatus('Exported index.html. Replace docs/index.html before publishing.');preview()};
+
+const contactKinds={email:'Email',whatsapp:'WhatsApp',linkedin:'LinkedIn',github:'GitHub',website:'Website',other:'Custom link'};
+const contactCSS=".portfolio-contact-links{display:flex;flex-wrap:wrap;gap:9px;margin-top:20px}.portfolio-contact-links:empty{display:none}.portfolio-contact-links a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:9px 15px;border:1px solid #d9bc74;border-radius:9px;background:#fffefa;color:var(--ink);font-size:15px;font-weight:700;overflow-wrap:anywhere}.portfolio-contact-links a:hover{background:var(--pale)}.portfolio-contact-links a:focus-visible{outline:3px solid var(--gold-dark);outline-offset:3px}@media(max-width:480px){.portfolio-contact-links a{flex:1 1 125px}}@media print{.portfolio-contact-links a{padding:4px 8px;min-height:0;font-size:11px}}";
+function normalizeContact(kind,value){
+ const v=value.trim();if(!v)return "";
+ if(kind==="email"){if(!/^[^\s@<>"?&#:/]+@[^\s@<>"?&#:/]+\.[^\s@<>"?&#:/]+$/.test(v))throw Error("Enter a valid email address.");return "mailto:"+v}
+ if(kind==="whatsapp"){const n=v.replace(/[\s()+-]/g,"");if(!/^[1-9]\d{7,14}$/.test(n))throw Error("Use an international number including country code.");return "https://wa.me/"+n}
+ const m=v.match(/^https:\/\/([a-z0-9-]+(?:\.[a-z0-9-]+)+)(?:[/?#][^\s<>"\\]*)?$/i);
+ if(!m)throw Error("Enter a complete HTTPS URL without credentials.");
+ const hostname=m[1].toLowerCase();
+ if(kind==="linkedin"&&!(hostname==="linkedin.com"||hostname.endsWith(".linkedin.com")))throw Error("Enter a LinkedIn profile URL.");
+ if(kind==="github"&&hostname!=="github.com")throw Error("Enter a GitHub URL.");
+ return v;
+}
+function contactContainer(){
+ const section=doc.querySelector('#contact .contact > div:first-child');
+ if(!section)throw Error('The portfolio has no compatible contact section.');
+ let host=section.querySelector('.portfolio-contact-links');
+ if(!host){host=doc.createElement('div');host.className='portfolio-contact-links';host.setAttribute('aria-label','Professional contact links');section.append(host)}
+ if(!doc.getElementById('portfolio-contact-style')){const style=doc.createElement('style');style.id='portfolio-contact-style';style.textContent=contactCSS;doc.head.append(style)}
+ return host;
+}
+function addContactRow(kind='email',label='',value=''){
+ if(!Object.hasOwn(contactKinds,kind))kind='other';
+ const row=document.createElement('div');row.className='contact-editor-row';row.style.cssText='border:1px solid #e1ded2;border-radius:10px;padding:12px;margin:10px 0';row.dataset.kind=kind;
+ const title=document.createElement('strong');title.textContent=contactKinds[kind];row.append(title);
+ function createInput(name,placeholder,initial){const lab=document.createElement('label');lab.textContent=name;const input=document.createElement('input');input.placeholder=placeholder;input.value=initial;input.setAttribute('aria-label',contactKinds[kind]+' '+name);lab.append(input);row.append(lab);input.addEventListener('input',mark);return input}
+ createInput('Button label',contactKinds[kind],label||contactKinds[kind]).className='contact-label';
+ createInput(kind==='email'?'Professional email':kind==='whatsapp'?'Professional international number':'HTTPS URL',kind==='email'?'name@example.com':kind==='whatsapp'?'Country code + number':'https://…',value).className='contact-value';
+ const remove=document.createElement('button');remove.className='secondary danger';remove.textContent='Remove';remove.style.marginTop='9px';remove.onclick=()=>{row.remove();mark();preview()};row.append(remove);$('contact-rows').append(row);
+}
+function loadContacts(){
+ $('contact-rows').replaceChildren();$('contact-error').textContent='';
+ for(const a of contactContainer().querySelectorAll('a[data-contact-kind]')){
+  const kind=a.dataset.contactKind;let val=a.getAttribute('href')||'';
+  if(kind==='email')val=val.replace(/^mailto:/,'');if(kind==='whatsapp')val=val.replace('https://wa.me/','+');
+  addContactRow(kind,a.textContent.trim(),val);
+ }
+}
+function syncContacts(){
+ if(!doc)return true;
+ try{
+  const links=[];
+  for(const row of $('contact-rows').querySelectorAll('.contact-editor-row')){
+   const kind=row.dataset.kind,label=row.querySelector('.contact-label').value.trim()||contactKinds[kind];
+   const href=normalizeContact(kind,row.querySelector('.contact-value').value);
+   if(href)links.push({kind,label,href});
+  }
+  const host=contactContainer();host.replaceChildren();
+  for(const item of links){const a=doc.createElement('a');a.textContent=item.label;a.setAttribute('href',item.href);a.dataset.contactKind=item.kind;if(item.kind!=='email'){a.target='_blank';a.rel='noopener noreferrer'}host.append(a)}
+  $('contact-error').textContent='';return true;
+ }catch(err){$('contact-error').textContent=err.message;setStatus('Contact link needs correction before preview/export.');return false}
+}
+$('add-contact').onclick=()=>{addContactRow($('contact-kind').value);mark()};
+$('apply-contacts').onclick=()=>{if(syncContacts()){mark();preview();setStatus('Contact links applied to draft. Export to save.')}};
+
 addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue=''}});
 </script></body></html>
