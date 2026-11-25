@@ -40,7 +40,7 @@ $('refresh').onclick=()=>{buildProjects(Number($('project').value));preview()};$
 $('save').onclick=()=>{if(!safe()||!syncContacts())return;const url=URL.createObjectURL(new Blob([output()],{type:'text/html;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='index.html';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);dirty=false;setStatus('Exported index.html. Replace docs/index.html before publishing.');preview()};
 
 const contactKinds={email:'Email',whatsapp:'WhatsApp',linkedin:'LinkedIn',github:'GitHub',website:'Website',other:'Custom link'};
-const contactCSS=".portfolio-contact-links{display:flex;flex-wrap:wrap;gap:9px;margin-top:20px}.portfolio-contact-links:empty{display:none}.portfolio-contact-links a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:9px 15px;border:1px solid #d9bc74;border-radius:9px;background:#fffefa;color:var(--ink);font-size:15px;font-weight:700;overflow-wrap:anywhere}.portfolio-contact-links a:hover{background:var(--pale)}.portfolio-contact-links a:focus-visible{outline:3px solid var(--gold-dark);outline-offset:3px}@media(max-width:480px){.portfolio-contact-links a{flex:1 1 125px}}@media print{.portfolio-contact-links a{padding:4px 8px;min-height:0;font-size:11px}}";
+const contactCSS=".portfolio-contact-links{display:flex;flex-wrap:wrap;gap:9px;margin-top:20px}.portfolio-contact-links:empty{display:none}.portfolio-contact-links a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:9px 15px;border:1px solid #d9bc74;border-radius:9px;background:#fffefa;color:var(--ink);font-size:15px;font-weight:700;overflow-wrap:anywhere}.portfolio-contact-links a:hover{background:var(--pale)}.portfolio-contact-links a:focus-visible{outline:3px solid var(--gold-dark);outline-offset:3px}@media(max-width:480px){.portfolio-contact-links a{flex:1 1 125px}}@media print{.portfolio-contact-links a{padding:4px 8px;min-height:0;font-size:11px}}.portfolio-contact-links a[data-contact-kind=email]{flex-wrap:wrap;gap:6px;max-width:100%;justify-content:flex-start;text-align:left}.portfolio-contact-links .contact-email-value{font-weight:500;font-size:.92em;overflow-wrap:anywhere;min-width:0;color:var(--muted);user-select:text}.portfolio-contact-links .contact-label-text{font-weight:750}.portfolio-contact-links .contact-email-value:before{content:' · ';color:var(--gold-dark)}@media(max-width:480px){.portfolio-contact-links a[data-contact-kind=email]{flex-basis:100%}}";
 function normalizeContact(kind,value){
  const v=value.trim();if(!v)return "";
  if(kind==="email"){if(!/^[^\s@<>"?&#:/]+@[^\s@<>"?&#:/]+\.[^\s@<>"?&#:/]+$/.test(v))throw Error("Enter a valid email address.");return "mailto:"+v}
@@ -57,7 +57,7 @@ function contactContainer(){
  if(!section)throw Error('The portfolio has no compatible contact section.');
  let host=section.querySelector('.portfolio-contact-links');
  if(!host){host=doc.createElement('div');host.className='portfolio-contact-links';host.setAttribute('aria-label','Professional contact links');section.append(host)}
- if(!doc.getElementById('portfolio-contact-style')){const style=doc.createElement('style');style.id='portfolio-contact-style';style.textContent=contactCSS;doc.head.append(style)}
+ let style=doc.getElementById('portfolio-contact-style');if(!style){style=doc.createElement('style');style.id='portfolio-contact-style';doc.head.append(style)}style.textContent=contactCSS;
  return host;
 }
 function addContactRow(kind='email',label='',value=''){
@@ -74,7 +74,7 @@ function loadContacts(){
  for(const a of contactContainer().querySelectorAll('a[data-contact-kind]')){
   const kind=a.dataset.contactKind;let val=a.getAttribute('href')||'';
   if(kind==='email')val=val.replace(/^mailto:/,'');if(kind==='whatsapp')val=val.replace('https://wa.me/','+');
-  addContactRow(kind,a.textContent.trim(),val);
+  addContactRow(kind,(a.querySelector('.contact-label-text')?.textContent||a.textContent).trim(),val);
  }
 }
 function syncContacts(){
@@ -87,7 +87,7 @@ function syncContacts(){
    if(href)links.push({kind,label,href});
   }
   const host=contactContainer();host.replaceChildren();
-  for(const item of links){const a=doc.createElement('a');a.textContent=item.label;a.setAttribute('href',item.href);a.dataset.contactKind=item.kind;if(item.kind!=='email'){a.target='_blank';a.rel='noopener noreferrer'}host.append(a)}
+  for(const item of links){const a=doc.createElement('a');a.setAttribute('href',item.href);a.dataset.contactKind=item.kind;if(item.kind==='email'){const label=doc.createElement('span');label.className='contact-label-text';label.textContent=item.label;const address=doc.createElement('span');address.className='contact-email-value';address.textContent=item.href.slice(7);a.append(label,address)}else{a.textContent=item.label;}if(item.kind!=='email'){a.target='_blank';a.rel='noopener noreferrer'}host.append(a)}
   $('contact-error').textContent='';return true;
  }catch(err){$('contact-error').textContent=err.message;setStatus('Contact link needs correction before preview/export.');return false}
 }
